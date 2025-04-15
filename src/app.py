@@ -38,6 +38,7 @@ class Config:
         self.FETCH_EVENT_WINDOW_IN_DAYS = os.environ.get('FETCH_EVENT_WINDOW_IN_DAYS', 5)
         self.TELEGRAM_BOT_TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN', None)
         self.TELEGRAM_CHAT_ID = os.environ.get('TELEGRAM_CHAT_ID', None)
+        self.TELEGRAM_THREAD_ID = os.environ.get('TELEGRAM_THREAD_ID', None)
         self.TIMEZONE = timezone(os.environ.get('TIMEZONE', 'UTC'))
 
         self.CALENDAR_IDS = self.CALENDAR_IDS.split(";") if self.CALENDAR_IDS else None
@@ -272,7 +273,8 @@ class Worker:
                 logging.info(f'Sending reminder for {reminder.vevent.summary.value}')
                 bot = telegram.Bot(self.config.TELEGRAM_BOT_TOKEN)
                 await bot.send_message(text=self.get_bot_message(reminder),
-                                       chat_id=self.config.TELEGRAM_CHAT_ID, parse_mode=ParseMode.HTML)
+                                       chat_id=self.config.TELEGRAM_CHAT_ID,
+                                       message_thread_id=self.config.TELEGRAM_THREAD_ID, parse_mode=ParseMode.HTML)
                 return True
         return False
 

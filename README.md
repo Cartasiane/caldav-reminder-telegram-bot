@@ -7,6 +7,7 @@ This bot synchronizes with a CalDAV server, fetches events, and sends reminders 
 1. Ensure you have Python 3.8 or above installed.
 2. Install the required libraries by running: `pip install -r requirements.txt`.
 3. Set the necessary [environment variables](#environment-variables): `CALDAV_URL`, `CALDAV_USERNAME`, `CALDAV_PASSWORD`, `CALENDAR_IDS`, `SYNC_INTERVAL_IN_SEC`, `FETCH_EVENT_WINDOW_IN_DAYS`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, and `TIMEZONE`.
+4. Set the optional environment variable `TELEGRAM_THREAD_ID` if you use a supergroup.
     ```bash
     export CALDAV_URL=https://<url>/SOGo/dav/
     export CALDAV_USERNAME=<username>
@@ -17,6 +18,7 @@ This bot synchronizes with a CalDAV server, fetches events, and sends reminders 
     export TIMEZONE=Europe/Berlin
     export TELEGRAM_BOT_TOKEN=<token>
     export TELEGRAM_CHAT_ID=<chat_id>
+    export TELEGRAM_THREAD_ID=<thread_id>
     ```
 4. Run the `app.py` script:
     ```bash
@@ -36,6 +38,7 @@ This bot synchronizes with a CalDAV server, fetches events, and sends reminders 
         -e TIMEZONE=Europe/Berlin \
         -e TELEGRAM_BOT_TOKEN=<token> \
         -e TELEGRAM_CHAT_ID=<chat_id> \
+        -e TELEGRAM_THREAD_ID=<thread_id> \
         mcdax/caldav-reminder-telegram-bot:latest
 
 Set the environment variables as described [here](#environment-variables).
@@ -60,6 +63,7 @@ docker-compose up --build -d
 - `FETCH_EVENT_WINDOW_IN_DAYS`: Number of days in advance to fetch events from the CalDAV server.
 - `TELEGRAM_BOT_TOKEN`: Token for the Telegram bot.
 - `TELEGRAM_CHAT_ID`: ID of the Telegram chat where reminders will be sent.
+- `TELEGRAM_THREAD_ID`: ID of the Telegram thread where reminders will be sent, if chat is a supergroup.
 - `TIMEZONE`: The timezone used for date and time operations.
 
 ## Message templates
