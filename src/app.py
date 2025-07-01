@@ -244,8 +244,7 @@ class Worker:
                 chat_id=self.config.TELEGRAM_CHAT_ID,
                 message_id=int(self.config.TELEGRAM_UPDATE_MESSAGE_ID),
                 text=msg,
-                parse_mode=ParseMode.HTML,
-                message_thread_id=self.config.TELEGRAM_THREAD_ID
+                parse_mode=ParseMode.HTML
             )
 
             # Re-pin to trigger notification
