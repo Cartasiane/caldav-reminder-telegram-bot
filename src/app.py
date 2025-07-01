@@ -244,7 +244,8 @@ class Worker:
                 chat_id=self.config.TELEGRAM_CHAT_ID,
                 message_id=int(self.config.TELEGRAM_UPDATE_MESSAGE_ID),
                 text=msg,
-                parse_mode=ParseMode.HTML
+                parse_mode=ParseMode.HTML,
+                message_thread_id=self.config.TELEGRAM_THREAD_ID
             )
 
             # Re-pin to trigger notification
@@ -287,7 +288,12 @@ class Worker:
                 if sorted_reminders_new != self.sorted_reminders:
                     self.sorted_reminders = sorted_reminders_new
                     self.scheduleReminderTask()
+                
+                try:
                     await self.update_summary_message()
+                except Exception as e:
+                    logging.error('Failed to update summary message')
+                    logging.exception(e)
 
         except Exception as e:
             logging.error(f'Exception occured')
