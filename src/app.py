@@ -285,10 +285,10 @@ class Worker:
             if events:
                 sorted_reminders_new = self.calHandler.extract_reminders(events)
                 if sorted_reminders_new != self.sorted_reminders:
-                    self.sorted_reminders = sorted_reminders_new
                     self.scheduleReminderTask()
-                
+    
                 try:
+                    self.sorted_reminders = sorted_reminders_new
                     await self.update_summary_message()
                 except Exception as e:
                     logging.error('Failed to update summary message')
