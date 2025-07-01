@@ -40,6 +40,8 @@ class Config:
         self.TELEGRAM_CHAT_ID = os.environ.get('TELEGRAM_CHAT_ID', None)
         self.TELEGRAM_THREAD_ID = os.environ.get('TELEGRAM_THREAD_ID', None)
         self.TIMEZONE = timezone(os.environ.get('TIMEZONE', 'UTC'))
+        self.TELEGRAM_UPDATE_MESSAGE_ID = os.environ.get('TELEGRAM_UPDATE_MESSAGE_ID', None)
+
 
         self.CALENDAR_IDS = self.CALENDAR_IDS.split(";") if self.CALENDAR_IDS else None
 
@@ -217,6 +219,50 @@ class Worker:
         self.event_loop.create_task(self.sync())
         self.event_loop.run_forever()
 
+    async def update_summary_message(self):
+        if not self.config.TELEGRAM_UPDATE_MESSAGE_ID:
+            return
+
+        top_reminders = self.sorted_reminders[:10]
+
+        def format_date(dt: datetime):
+            return dt.strftime('%d.%m.%Y %H:%M')
+
+        lines = []
+        for rem in top_reminders:
+            summary = rem.vevent.summary.value
+            dt = format_date(rem.dt)
+            lines.append(f"• <b>{summary}</b>\n  <i>{dt}</i>")
+
+        msg = "\n\n".join(lines) if lines else "Pas de prochains events :("
+
+        try:
+            bot = telegram.Bot(self.config.TELEGRAM_BOT_TOKEN)
+
+            # Edit existing message
+            await bot.edit_message_text(
+                chat_id=self.config.TELEGRAM_CHAT_ID,
+                message_id=int(self.config.TELEGRAM_UPDATE_MESSAGE_ID),
+                text=msg,
+                parse_mode=ParseMode.HTML,
+                message_thread_id=self.config.TELEGRAM_THREAD_ID
+            )
+
+            # Re-pin to trigger notification
+            await bot.unpin_chat_message(chat_id=self.config.TELEGRAM_CHAT_ID)
+            await bot.pin_chat_message(
+                chat_id=self.config.TELEGRAM_CHAT_ID,
+                message_id=int(self.config.TELEGRAM_UPDATE_MESSAGE_ID),
+                disable_notification=False
+            )
+
+            logging.info('Updated and re-pinned upcoming events message.')
+
+        except Exception as e:
+            logging.error(f'Failed to update or re-pin message: {e}')
+
+
+
     def scheduleReminderTask(self):
         """Schedule the next reminder task based on the sorted reminders list."""
         if self.reminder_task:
@@ -242,6 +288,7 @@ class Worker:
                 if sorted_reminders_new != self.sorted_reminders:
                     self.sorted_reminders = sorted_reminders_new
                     self.scheduleReminderTask()
+                    await self.update_summary_message()
 
         except Exception as e:
             logging.error(f'Exception occured')
