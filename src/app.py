@@ -1,5 +1,6 @@
 import os
 import sys
+import html
 import asyncio
 import logging
 from typing import List, Optional
@@ -229,12 +230,18 @@ class Worker:
             return dt.strftime('%d.%m.%Y %H:%M')
 
         lines = []
+        lines = ["<b>10 Prochains événements</b>"]
         for rem in top_reminders:
-            summary = rem.vevent.summary.value
-            dt = format_date(rem.dt)
-            lines.append(f"• <b>{summary}</b>\n  <i>{dt}</i>")
+            summary = html.escape(rem.vevent.summary.value)  # Escape HTML-sensitive characters
+            dt_start = format_date(rem.vevent.dtstart.value)
+            dt_end = format_date(rem.vevent.dtend.value) if "dtend" in rem.vevent.contents else ""
+            date_range = f"{dt_start} → {dt_end}" if dt_end else dt_start
+            lines.append(f"• <b>{summary}</b>\n  <i>{date_range}</i>")
 
-        msg = "\n\n".join(lines) if lines else "Pas de prochains events :("
+        if lines:
+            lines.append("\n<a href=\"https://example.com/calendar\">Calendrier en ligne</a>")
+
+        msg = "\n\n".join(lines) if len(lines) > 1 else "Pas de prochains events :("
 
         try:
             bot = telegram.Bot(self.config.TELEGRAM_BOT_TOKEN)
