@@ -51,15 +51,14 @@ class Config:
 class Reminder:
     """Class representing a reminder."""
     dt: datetime
-    valarm: caldav.vobject.base.Component = field(compare = False)
-    vevent: caldav.vobject = field(compare = False)
+    valarm: Optional[caldav.vobject.base.Component] = field(compare=False, default=None)
+    vevent: caldav.vobject = field(compare=False)
 
 
 @dataclass()
 class Event:
     """Class representing an event."""
     vevent: caldav.vobject
-    reminders: List[Reminder] = field(default_factory=list, init=False)
 
 
 class CaldavHandler:
@@ -148,19 +147,7 @@ class CaldavHandler:
                     logging.debug(f'Timezone added to dtstart: {dtstart}')
 
                 vevent.dtstart.value = dtstart.astimezone(self.config.TIMEZONE)
-                dtstart = vevent.dtstart.value
-                event = Event(vevent=vevent)
-
-                for valarm in vevent.components():
-                    trigger = valarm.trigger.value
-                    logging.debug(f'Found reminder: {trigger} ({type(trigger)})')
-                    if isinstance(trigger, timedelta):
-                        alarm_dt = dtstart + trigger
-                    else:
-                        alarm_dt = trigger
-                    event.reminders.append(Reminder(dt=alarm_dt, valarm=valarm, vevent=vevent))
-
-                eventsData.append(event)
+                eventsData.append(Event(vevent=vevent))
 
         if logging.getLogger().level == logging.DEBUG:
             logged_events = ''
@@ -178,10 +165,12 @@ class CaldavHandler:
         """
         logging.debug(f'Extracting Reminders from events: {[event.vevent.uid.value for event in events]}')
         reminders: List[Reminder] = []
+        now = datetime.now(tz=self.config.TIMEZONE)
         for event in events:
-            for reminder in event.reminders:
-                if reminder.dt >= datetime.now(tz=self.config.TIMEZONE):
-                    reminders.append(reminder)
+            dtstart = event.vevent.dtstart.value
+            reminder_dt = dtstart - timedelta(days=7)
+            if reminder_dt >= now:
+                reminders.append(Reminder(dt=reminder_dt, vevent=event.vevent))
 
         reminders.sort()
         if logging.getLogger().level == logging.DEBUG:
@@ -199,6 +188,7 @@ class Worker:
     def __init__(self, config: Config, calHandler: CaldavHandler):
         """Initialize Worker instance with CaldavHandler."""
         self.sorted_reminders: List[Reminder] = []
+        self.sorted_events: List[Event] = []
         self.reminder_task: asyncio.Task = None
         self.calHandler: CaldavHandler = calHandler
         self.config: Config = config
@@ -224,20 +214,21 @@ class Worker:
         if not self.config.TELEGRAM_UPDATE_MESSAGE_ID:
             return
 
-        top_reminders = self.sorted_reminders[:10]
+        top_events = self.sorted_events[:10]
 
         def format_date(dt: datetime):
             return dt.strftime('%d.%m.%Y %H:%M')
 
-        lines = []
         lines = ["<b>10 Prochains événements</b>"]
-        logging.debug(f'Extracted reminders:\n{top_reminders}')
-        for rem in top_reminders:
-            summary = html.escape(rem.vevent.summary.value)  # Escape HTML-sensitive characters
-            dt_start = format_date(rem.vevent.dtstart.value)
-            dt_end = format_date(rem.vevent.dtend.value) if "dtend" in rem.vevent.contents else ""
+        logging.debug(f'Upcoming events:\n{top_events}')
+        for event in top_events:
+            summary = html.escape(event.vevent.summary.value)
+            description = html.escape(event.vevent.description.value) if "description" in event.vevent.contents else ""
+            dt_start = format_date(event.vevent.dtstart.value)
+            dt_end = format_date(event.vevent.dtend.value) if "dtend" in event.vevent.contents else ""
             date_range = f"{dt_start} → {dt_end}" if dt_end else dt_start
-            lines.append(f"• <b>{summary}</b>\n  <i>{date_range}</i>")
+            desc_line = f"\n  {description}" if description else ""
+            lines.append(f"• <b>{summary}</b>{desc_line}\n  <i>{date_range}</i>")
 
         if lines:
             lines.append("\n<a href=\"https://example.com/calendar\">Calendrier en ligne</a>")
@@ -291,12 +282,14 @@ class Worker:
             cals_subscripted = list(filter(lambda x: x.id in self.config.CALENDAR_IDS, self.cals))
             events = self.calHandler.fetch_events(cals_subscripted)
             if events:
+                events.sort(key=lambda e: e.vevent.dtstart.value)
+                self.sorted_events = events
                 sorted_reminders_new = self.calHandler.extract_reminders(events)
                 if sorted_reminders_new != self.sorted_reminders:
-                    self.scheduleReminderTask()
-    
-                try:
                     self.sorted_reminders = sorted_reminders_new
+                    self.scheduleReminderTask()
+
+                try:
                     await self.update_summary_message()
                 except Exception as e:
                     logging.error('Failed to update summary message')

@@ -1,6 +1,6 @@
 # CalDAV Reminder Telegram Bot
 
-This bot synchronizes with a CalDAV server, fetches events, and sends reminders for these events to a specified Telegram chat.
+This bot synchronizes with a CalDAV server, fetches events, and sends notifications to a specified Telegram chat. It posts a pinned message with the next ten upcoming events (title, description and date) and automatically sends a notification seven days before each event.
 
 ## Running Without Docker
 
@@ -60,7 +60,7 @@ docker-compose up --build -d
 - `CALDAV_PASSWORD`: Password for authentication on the CalDAV server.
 - `CALENDAR_IDS`: Semi-colon separated list of calendar IDs to be synced.
 - `SYNC_INTERVAL_IN_SEC`: Interval in seconds at which the bot syncs with the CalDAV server.
-- `FETCH_EVENT_WINDOW_IN_DAYS`: Number of days in advance to fetch events from the CalDAV server.
+- `FETCH_EVENT_WINDOW_IN_DAYS`: Number of days in advance to fetch events from the CalDAV server. Set this to at least `7` to ensure notifications are scheduled.
 - `TELEGRAM_BOT_TOKEN`: Token for the Telegram bot.
 - `TELEGRAM_CHAT_ID`: ID of the Telegram chat where reminders will be sent.
 - `TELEGRAM_THREAD_ID`: ID of the Telegram thread where reminders will be sent, if chat is a supergroup.
