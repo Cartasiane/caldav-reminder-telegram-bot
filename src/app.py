@@ -49,7 +49,12 @@ class Config:
 
 @dataclass(order=True)
 class Reminder:
-    """Class representing a reminder."""
+    """Class representing a reminder.
+
+    The ``vevent`` field must appear before ``valarm`` so that the dataclass
+    initializer doesn't raise ``TypeError`` about non-default arguments
+    following default ones.
+    """
     dt: datetime
     vevent: caldav.vobject = field(compare=False)
     valarm: Optional[caldav.vobject.base.Component] = field(compare=False, default=None)
