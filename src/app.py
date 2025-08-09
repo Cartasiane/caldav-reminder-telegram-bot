@@ -51,8 +51,8 @@ class Config:
 class Reminder:
     """Class representing a reminder."""
     dt: datetime
-    valarm: Optional[caldav.vobject.base.Component] = field(compare=False, default=None)
     vevent: caldav.vobject = field(compare=False)
+    valarm: Optional[caldav.vobject.base.Component] = field(compare=False, default=None)
 
 
 @dataclass()
@@ -364,7 +364,7 @@ class Worker:
             return remove_empty_lines(msg)
         return f'<b>{reminder.vevent.summary.value}</b>\r\n{format_date(reminder.vevent.dtstart.value)}'
 
-if __name__ == '__main__':
+def main() -> None:
     """Main entry point for the script."""
     config = Config()
 
@@ -381,9 +381,17 @@ if __name__ == '__main__':
         sys.exit(1)
 
     caldav_handler = CaldavHandler(config)
-    result = caldav_handler.login(caldav_url=config.CALDAV_URL, username=config.CALDAV_USERNAME, password=config.CALDAV_PASSWORD)
+    result = caldav_handler.login(
+        caldav_url=config.CALDAV_URL,
+        username=config.CALDAV_USERNAME,
+        password=config.CALDAV_PASSWORD,
+    )
     if result is False:
         logging.error('Cannot start: Login failed')
         sys.exit(1)
     worker = Worker(config, caldav_handler)
     worker.run()
+
+
+if __name__ == '__main__':
+    main()
