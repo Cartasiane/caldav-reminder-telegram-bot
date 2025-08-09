@@ -231,6 +231,7 @@ class Worker:
 
         lines = []
         lines = ["<b>10 Prochains événements</b>"]
+        logging.debug(f'Extracted reminders:\n{top_reminders}')
         for rem in top_reminders:
             summary = html.escape(rem.vevent.summary.value)  # Escape HTML-sensitive characters
             dt_start = format_date(rem.vevent.dtstart.value)
